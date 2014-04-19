@@ -55,6 +55,25 @@ public class HiLoggerConnector {
 		startConnection();
 	}
 	
+	public void stop() {
+		// ストップ
+		command(Command.STOP);
+		
+		try {
+			if(socket != null) {
+				socket.close();
+			}
+		}catch(IOException e) {
+			e.printStackTrace();
+		}
+
+		is = null;
+		isr = null;
+		br = null;
+		os = null;
+		socket = null;
+	}
+	
 	private void startConnection() {
 		try {
 			socket = new Socket(hostname, port);
