@@ -9,15 +9,27 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public class HiLoggerConnector {
+	// 計測するチャンネル数、ユニット数
+	// 変更する場合はロガーユーティリティでメモリハイロガーを再設定する必要がある
+	// ユニット毎に別々のチャンネル数を設定できない
+	private static final int MAX_CH = 14;	// 最大14ch
+	private static final int MAX_UNIT = 6;	// 最大6unit
+	
 	private final static Properties config = new Properties();
 	
 	private String hostname;
 	private int port;
 	private long measurementInterval;
 	private long takeInterval;
+	
+	private boolean isConnecting;
+	private int dataLength;
+	private ArrayList<ArrayList> volt = new ArrayList<ArrayList>();	// 取得した電圧
+	private ArrayList<ArrayList> power = new ArrayList<ArrayList>();	// 電圧から計算した消費電力
 	
 	private Socket socket;
 	private InputStream is;
@@ -48,16 +60,48 @@ public class HiLoggerConnector {
 		String configfilePath = args[0];
 		
 		HiLoggerConnector hlc = new HiLoggerConnector(configfilePath);
-		
+		hlc.start();
 	}
 	
 	public void start() {
 		startConnection();
+		
+		// TODO スレッド化させる
+		long sumNumOfData = 0L;
+		long numOfData = takeInterval / measurementInterval;
+		while(isConnecting) {
+			long executiontime = System.currentTimeMillis();
+			long before = executiontime;
+			byte[] rec = command(Command.REQUIRE_DATA);	// データ要求コマンド
+			Response res = new Response(rec);
+			
+			for(int i = 0; i < numOfData; i++) {
+				getData();
+			}
+			
+			// TODO ログ書き込み
+			
+			sumNumOfData += numOfData;
+			long after = System.currentTimeMillis();
+			
+			// 遅延解消
+			try {
+				// メモリ内データがなくなるのを防ぐために1秒は必ず遅れる
+				if(res.getNumOfData() < sumNumOfData + numOfData) {
+					Thread.sleep(takeInterval);
+				}else {
+					Thread.sleep(takeInterval - (after - before));
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	public void stop() {
-		// ストップ
 		command(Command.STOP);
+		
+		isConnecting = false;
 		
 		try {
 			if(socket != null) {
@@ -110,8 +154,9 @@ public class HiLoggerConnector {
 			Thread.sleep(1000);
 			byte state = (byte) 0xff;
 			while(state != 65){
-				byte[] rec = command(Command.REQUIRE_STATE);
-				state = getState(rec);
+				byte[] rawData = command(Command.REQUIRE_STATE);
+				Response res = new Response(rawData); 
+				state = res.getState();
 			}
 			state = (byte) 0xff;
 			
@@ -119,22 +164,27 @@ public class HiLoggerConnector {
 			command(Command.SYSTRIGGER);
 			Thread.sleep(1000);
 			while(state != 35){
-				byte[] rec = command(Command.REQUIRE_STATE);
-				state = getState(rec);
+				byte[] rawData = command(Command.REQUIRE_STATE);
+				Response res = new Response(rawData); 
+				state = res.getState();
 			}
 			state = (byte) 0xff;
 			
 			// データ要求
-			// TODO Record Classを追加する
-//			req = Command.REQUIRE_DATA;
-//			command(req);
-//			while(is.available() == 0);
-//			raw = new byte[is.available()];
-//			bis.read(raw);
+			// TODO 電圧データの取得方法を検討
+			command(Command.REQUIRE_DATA);
+			while(is.available() == 0);
+			byte[] rawData = new byte[is.available()];
+			dataLength = rawData.length;	// FIXME
+			bis.read(rawData);
 			
 			Thread.sleep(takeInterval);
 			
-//			req[20] = (byte) datanum;
+			// 1回のデータ取得数を設定
+			byte num = (byte) (takeInterval / measurementInterval);
+			Command.setRequireNumOfData(num);
+			
+			isConnecting = true;
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -147,6 +197,7 @@ public class HiLoggerConnector {
 		}
 	}
 	
+	// コマンドを発行
 	private byte[] command(byte[] cmd){
 		sendCommand(cmd);
 		return getCommand();
@@ -177,18 +228,65 @@ public class HiLoggerConnector {
 		}
 	}
 	
-	// MemoryHiLoggerの状態を取得 TODO Record Classを追加する
-	private byte getState(byte[] rec) {
-		if(rec[0] == 0x02 && rec[1] == 0x01) {
-			switch(rec[2]) {
-			case 0x50:	// スタートコマンド
-			case 0x51:	// ストップコマンド
-			case 0x57:	// 測定状態要求コマンド
-			case 0x58:	// アプリシステムトリガコマンド
-				return rec[5];
-			}
+	// FIXME Responseにまとめる
+	// MemoryHiLoggerから電圧データを受け取り消費電力を計算
+	private void getData() {
+		byte[] raw = new byte[dataLength];
+		try {
+			bis.read(raw);
+			getVolt(raw);
+			getPower();
+			Command.incRequireDataCommand();
+		}catch(Exception e) {
+			e.printStackTrace();
+			stop();
 		}
-		return (byte) 0xff;	// 不明なコマンド
 	}
 	
+	// 生データから電圧リストを取得
+	private void getVolt(byte[] rec) {
+		String raw = "";
+		int index = 21;
+		
+		if(rec[0] == 0x01 && rec[1] == 0x00 && rec[2] == 0x01) {	// データ転送コマンド
+			for(int unit = 1; unit < 9; unit++) {
+				for(int ch = 1; ch < 17; ch++) {
+					for(int i = 0; i < 4; i++) {	// 個々の電圧
+						if(ch <= MAX_CH && unit <= MAX_UNIT) {
+							raw += String.format("%02x", rec[index]);
+						}
+						index++;
+					}
+					if(ch <= MAX_CH && unit <= MAX_UNIT) {
+						// 電圧値に変換(スライドp47)
+						// 電圧軸レンジ
+						// 資料： 1(V/10DIV)
+						// ロガーユーティリティ： 100 mv f.s. -> 0.1(V/10DIV)???
+						volt.get(unit - 1).add(((double) Integer.parseInt(raw, 16) - 32768.0) * 0.1 / 20000.0);
+					}
+					raw = "";
+				}
+			}
+		}else {	// データ転送コマンドでない場合
+			System.out.println("NULL");
+			volt = null;
+		}
+	}
+	
+	// 電圧リストから消費電力リストを取得
+	private void getPower() {
+		for(int unit = 0; unit < MAX_UNIT; unit++) {
+			int voltListSize = volt.get(unit).size();
+			
+			if(voltListSize % 2 != 0) {
+				voltListSize--;
+			}
+			for(int i = 0; i < voltListSize; i += 2) {
+				// TODO どっちのチャンネルが12Vか5Vかを判別できるようにする必要がある
+				// ch1が赤5V線、ch2が黄12V線
+				power.get(unit).add(Math.abs((Double) volt.get(unit).get(i)) * 50.0 + Math.abs((Double) volt.get(unit).get(i + 1)) * 120.0);
+			}
+			volt.get(unit).clear();
+		}
+	}
 }

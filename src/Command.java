@@ -23,10 +23,36 @@ public class Command {
 	public static final byte[] SYSTRIGGER = {(byte) 0x02, (byte) 0x01, (byte) 0x58, (byte) 0x00, (byte) 0x09
 			, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
 			, (byte) 0x00};
-	// データ要求コマンド1st（高速）
-	public static final byte[] REQUIRE_DATA = {(byte) 0x02, (byte) 0x01, (byte) 0x55, (byte) 0x00, (byte) 0x10
-			, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
-			, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01};
 	// ストップコマンド
 	public static final byte[] STOP = {(byte) 0x02, (byte) 0x01, (byte) 0x51, (byte) 0x00, (byte) 0x00};
+	
+	// データ要求コマンド1st（高速）
+	public static byte[] REQUIRE_DATA = {(byte) 0x02, (byte) 0x01, (byte) 0x55, (byte) 0x00, (byte) 0x10
+			, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
+			, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01};
+	
+	// データ要求コマンド1stのサンプリング番号を1つ増やす
+	public static void incRequireDataCommand() {
+		for(int i = 12; i > 5; i--) {
+			if(REQUIRE_DATA[i] == 0xffffffff) {
+				REQUIRE_DATA[i] = 0x00000000;
+				REQUIRE_DATA[i - 1]++;
+				if(REQUIRE_DATA[i - 1] != 0xffffffff) {
+					break;
+				}
+			}else if(REQUIRE_DATA[5] == 0xffffffff) {
+				return;
+			}else {
+				REQUIRE_DATA[12]++;
+				break;
+			}
+		}
+	}
+	
+	// 1回のデータ要求コマンドで取得するデータ数を指定する
+	// 現在は1-255まで
+	// TODO 256以上に対応
+	public static void setRequireNumOfData(byte num) {
+		REQUIRE_DATA[20] = num;
+	}
 }
