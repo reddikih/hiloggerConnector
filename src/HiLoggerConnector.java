@@ -12,7 +12,12 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class HiLoggerConnector {
+	private static Logger logger = LoggerFactory.getLogger(HiLoggerConnector.class);
+	
 	// 計測するチャンネル数、ユニット数
 	// 変更する場合はロガーユーティリティでメモリハイロガーを再設定する必要がある
 	// ユニット毎に別々のチャンネル数を設定できない
@@ -64,6 +69,7 @@ public class HiLoggerConnector {
 	}
 	
 	public void start() {
+		logger.info("hostname: " + hostname + ", port: " + port + ", measurementInterval: " + measurementInterval);
 		startConnection();
 		
 		// TODO スレッド化させる
