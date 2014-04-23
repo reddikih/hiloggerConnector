@@ -1,4 +1,4 @@
-
+package jp.ac.titech.cs.de.hilogger;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;

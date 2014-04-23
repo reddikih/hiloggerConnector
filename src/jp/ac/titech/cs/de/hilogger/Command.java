@@ -1,5 +1,4 @@
-
-
+package jp.ac.titech.cs.de.hilogger;
 
 public class Command {
 	// スタート状態とPCのMAC要求コマンド

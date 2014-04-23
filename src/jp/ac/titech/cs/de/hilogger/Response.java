@@ -1,3 +1,4 @@
+package jp.ac.titech.cs.de.hilogger;
 
 public class Response {
 	private final byte[] rawData;
