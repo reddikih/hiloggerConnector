@@ -85,7 +85,14 @@ public class HiLoggerConnector {
 				getData();
 			}
 			
-			// TODO ログ書き込み
+			// ログ書き込み
+			for(int unit = 0; unit < MAX_UNIT; unit++) {
+				for(int disk = 0; disk < MAX_CH / 2; disk++) {
+					int driveId = unit * 5 + disk;
+					logger.info("{},{},{}", executiontime, driveId, power.get(unit).get(0));
+					power.get(unit).remove(0);
+				}
+			}
 			
 			sumNumOfData += numOfData;
 			long after = System.currentTimeMillis();
