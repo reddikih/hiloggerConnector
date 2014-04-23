@@ -1,5 +1,6 @@
 <configuration>
     <variable name="OUT_DIR" value="log" />
+    <timestamp key="d" datePattern="yyyyMMddHHmmss" />
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- encoders are assigned the type
@@ -11,7 +12,7 @@
 
     <!-- Appender Settings -->
     <appender name="HILOGGER_CONNECTOR_LOGGER" class="ch.qos.logback.core.FileAppender" >
-        <file>${OUT_DIR}/hilogger.log</file>
+        <file>${OUT_DIR}/hilogger-${d}.log</file>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
