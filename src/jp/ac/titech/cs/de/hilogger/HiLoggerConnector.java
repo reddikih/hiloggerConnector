@@ -31,10 +31,12 @@ public class HiLoggerConnector {
 	private long measurementInterval;
 	private long takeInterval;
 	
+	private long startTime;
+	private long endTime;
 	private boolean isConnecting;
 	private int dataLength;
-	private ArrayList<ArrayList> volt = new ArrayList<ArrayList>();	// 取得した電圧
-	private ArrayList<ArrayList> power = new ArrayList<ArrayList>();	// 電圧から計算した消費電力
+	private ArrayList<ArrayList<Double>> volt = new ArrayList<ArrayList<Double>>();	// 取得した電圧
+	private ArrayList<ArrayList<Double>> power = new ArrayList<ArrayList<Double>>();	// 電圧から計算した消費電力
 	
 	private Socket socket;
 	private InputStream is;
@@ -71,6 +73,8 @@ public class HiLoggerConnector {
 	public void start() {
 		logger.info("hostname: " + hostname + ", port: " + port + ", measurementInterval: " + measurementInterval);
 		startConnection();
+		
+		startTime = System.currentTimeMillis();
 		
 		// TODO スレッド化させる
 		long sumNumOfData = 0L;
@@ -116,6 +120,8 @@ public class HiLoggerConnector {
 		
 		isConnecting = false;
 		
+		endTime = System.currentTimeMillis();
+		
 		try {
 			if(socket != null) {
 				socket.close();
@@ -129,6 +135,30 @@ public class HiLoggerConnector {
 		br = null;
 		os = null;
 		socket = null;
+	}
+	
+	public long getStartTime() {
+		return startTime;
+	}
+	
+	public long getEndTime() {
+		return endTime;
+	}
+	
+	// TODO
+	public int[] getDriveIds() {
+		int[] driveIds = {0, 1};
+		return driveIds;
+	}
+	
+	// TODO
+	public double getDrivePower() {
+		return 0.0;
+	}
+	
+	// TODO
+	public double getTotalPower() {
+		return 0.0;
 	}
 	
 	private void startConnection() {
@@ -188,7 +218,7 @@ public class HiLoggerConnector {
 			command(Command.REQUIRE_DATA);
 			while(is.available() == 0);
 			byte[] rawData = new byte[is.available()];
-			dataLength = rawData.length;	// FIXME
+			dataLength = rawData.length;
 			bis.read(rawData);
 			
 			Thread.sleep(takeInterval);
@@ -241,7 +271,7 @@ public class HiLoggerConnector {
 		}
 	}
 	
-	// FIXME Responseにまとめる
+	// TODO Responseにまとめる
 	// MemoryHiLoggerから電圧データを受け取り消費電力を計算
 	private void getData() {
 		byte[] raw = new byte[dataLength];
