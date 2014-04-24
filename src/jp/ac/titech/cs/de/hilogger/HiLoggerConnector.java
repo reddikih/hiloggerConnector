@@ -37,6 +37,7 @@ public class HiLoggerConnector {
 	private int dataLength;
 	private ArrayList<ArrayList<Double>> volt = new ArrayList<ArrayList<Double>>();	// 取得した電圧
 	private ArrayList<ArrayList<Double>> power = new ArrayList<ArrayList<Double>>();	// 電圧から計算した消費電力
+	private LogPowerThread lpt = new LogPowerThread();
 	
 	private Socket socket;
 	private InputStream is;
@@ -76,41 +77,46 @@ public class HiLoggerConnector {
 		
 		startTime = System.currentTimeMillis();
 		
-		// TODO スレッド化させる
-		long sumNumOfData = 0L;
-		long numOfData = takeInterval / measurementInterval;
-		while(isConnecting) {
-			long executiontime = System.currentTimeMillis();
-			long before = executiontime;
-			byte[] rec = command(Command.REQUIRE_DATA);	// データ要求コマンド
-			Response res = new Response(rec);
-			
-			for(int i = 0; i < numOfData; i++) {
-				getData();
-			}
-			
-			// ログ書き込み
-			for(int unit = 0; unit < MAX_UNIT; unit++) {
-				for(int disk = 0; disk < MAX_CH / 2; disk++) {
-					int driveId = unit * 5 + disk;
-					logger.info("{},{},{}", executiontime, driveId, power.get(unit).get(0));
-					power.get(unit).remove(0);
+		lpt.start();
+	}
+	
+	class LogPowerThread extends Thread {
+		public void run() {
+			long sumNumOfData = 0L;
+			long numOfData = takeInterval / measurementInterval;
+			while(isConnecting) {
+				long executiontime = System.currentTimeMillis();
+				long before = executiontime;
+				byte[] rec = command(Command.REQUIRE_DATA);	// データ要求コマンド
+				Response res = new Response(rec);
+				
+				for(int i = 0; i < numOfData; i++) {
+					getData();
 				}
-			}
-			
-			sumNumOfData += numOfData;
-			long after = System.currentTimeMillis();
-			
-			// 遅延解消
-			try {
-				// メモリ内データがなくなるのを防ぐために1秒は必ず遅れる
-				if(res.getNumOfData() < sumNumOfData + numOfData) {
-					Thread.sleep(takeInterval);
-				}else {
-					Thread.sleep(takeInterval - (after - before));
+				
+				// ログ書き込み
+				for(int unit = 0; unit < MAX_UNIT; unit++) {
+					for(int disk = 0; disk < MAX_CH / 2; disk++) {
+						int driveId = unit * 5 + disk;
+						logger.info("{},{},{}", executiontime, driveId, power.get(unit).get(0));
+						power.get(unit).remove(0);
+					}
 				}
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+				
+				sumNumOfData += numOfData;
+				long after = System.currentTimeMillis();
+				
+				// 遅延解消
+				try {
+					// メモリ内データがなくなるのを防ぐために1秒は必ず遅れる
+					if(res.getNumOfData() < sumNumOfData + numOfData) {
+						Thread.sleep(takeInterval);
+					}else {
+						Thread.sleep(takeInterval - (after - before));
+					}
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
