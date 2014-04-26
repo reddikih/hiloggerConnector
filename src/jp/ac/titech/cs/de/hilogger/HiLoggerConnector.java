@@ -54,6 +54,11 @@ public class HiLoggerConnector {
 			this.port = Integer.parseInt(config.getProperty("hilogger.info.port"));
 			this.measurementInterval = Long.parseLong(config.getProperty("hilogger.info.measurementInterval"));
 			this.takeInterval = Long.parseLong(config.getProperty("hilogger.info.takeInterval"));
+			
+			for(int i = 0; i < MAX_UNIT; i++) {
+				this.volt.add(new ArrayList<Double>());
+				this.power.add(new ArrayList<Double>());
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -77,6 +82,8 @@ public class HiLoggerConnector {
 		
 		startTime = System.currentTimeMillis();
 		
+		logger.info("start time: " + startTime);
+		
 		lpt.start();
 	}
 	
@@ -97,9 +104,11 @@ public class HiLoggerConnector {
 				// ログ書き込み
 				for(int unit = 0; unit < MAX_UNIT; unit++) {
 					for(int disk = 0; disk < MAX_CH / 2; disk++) {
-						int driveId = unit * 5 + disk;
-						logger.info("{},{},{}", executiontime, driveId, power.get(unit).get(0));
-						power.get(unit).remove(0);
+						synchronized(this) {
+							int driveId = unit * MAX_UNIT + disk;
+							logger.info("{},{},{}", executiontime, driveId, power.get(unit).get(0));
+							power.get(unit).remove(0);
+						}
 					}
 				}
 				
