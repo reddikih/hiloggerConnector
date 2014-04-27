@@ -44,7 +44,7 @@ public class HiLoggerConnector {
 	 * ロック用オブジェクト
 	 */
 	private Object lock = new Object();
-	
+
 	private Socket socket;
 	private InputStream is;
 	private InputStreamReader isr;
@@ -146,7 +146,7 @@ public class HiLoggerConnector {
 	public void stop() {
 		command(Command.STOP);
 
-		synchronized(lock) {
+		synchronized (lock) {
 			isConnecting = false;
 		}
 		endTime = System.currentTimeMillis();
@@ -206,6 +206,8 @@ public class HiLoggerConnector {
 			br = new BufferedReader(isr);
 			while (is.available() == 0)
 				;
+			// MemoryHiLoggerからの応答を受け取る
+			// 受け取ったデータ自体は特に使っていない
 			char[] line = new char[is.available()];
 			br.read(line);
 
@@ -225,17 +227,18 @@ public class HiLoggerConnector {
 
 			// 状態が変化するのを待つ
 			Thread.sleep(1000);
-			waitStateChange(65);	// TODO magic number
+			waitStateChange(65); // TODO magic number
 
 			// システムトリガー
 			command(Command.SYSTRIGGER);
 			Thread.sleep(1000);
-			waitStateChange(35);	// TODO magic number
+			waitStateChange(35); // TODO magic number
 
 			// データ要求
 			// TODO 電圧データの取得方法を検討
 			command(Command.REQUIRE_DATA);
-			while (is.available() == 0);
+			while (is.available() == 0)
+				;
 			byte[] rawData = new byte[is.available()];
 			dataLength = rawData.length;
 			bis.read(rawData);
@@ -258,7 +261,7 @@ public class HiLoggerConnector {
 			System.exit(1);
 		}
 	}
-	
+
 	// 引数で与えられた状態に変化するまで待つ
 	private void waitStateChange(int expectedState) {
 		byte state = (byte) 0xff;
