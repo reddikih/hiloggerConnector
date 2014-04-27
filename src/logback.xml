@@ -1,0 +1,30 @@
+<configuration>
+    <variable name="OUT_DIR" value="log" />
+    <timestamp key="d" datePattern="yyyyMMddHHmmss" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Appender Settings -->
+    <appender name="HILOGGER_CONNECTOR_LOGGER" class="ch.qos.logback.core.FileAppender" >
+        <file>${OUT_DIR}/hilogger-${d}.log</file>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Logger Settings -->
+    <logger name="jp.ac.titech.cs.de.hilogger.HiLoggerConnector" additivity="false">
+        <appender-ref ref="HILOGGER_CONNECTOR_LOGGER" />
+    </logger>
+
+    <!-- Root Logger Setting -->
+    <root level="${root-level:-debug}">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
