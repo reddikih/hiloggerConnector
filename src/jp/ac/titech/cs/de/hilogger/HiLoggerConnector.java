@@ -35,8 +35,8 @@ public class HiLoggerConnector {
 	private long endTime;
 	private boolean isConnecting;
 	private int dataLength;
-	private ArrayList<ArrayList<Double>> volt = new ArrayList<ArrayList<Double>>();	// 取得した電圧
-	private ArrayList<ArrayList<Double>> power = new ArrayList<ArrayList<Double>>();	// 電圧から計算した消費電力
+	private ArrayList<ArrayList<Double>> volt = new ArrayList<>();	// 取得した電圧
+	private ArrayList<ArrayList<Double>> power = new ArrayList<>();	// 電圧から計算した消費電力
 	private LogPowerThread lpt = new LogPowerThread();
 	
 	private Socket socket;
@@ -46,9 +46,9 @@ public class HiLoggerConnector {
 	private BufferedInputStream bis;
 	private OutputStream os;
 	
-	public HiLoggerConnector(String configfilePath) {
+	public HiLoggerConnector(String configFilePath) {
 		try {
-			config.load(new FileInputStream(configfilePath));
+			config.load(new FileInputStream(configFilePath));
 			
 			this.hostname = config.getProperty("hilogger.info.hostname");
 			this.port = Integer.parseInt(config.getProperty("hilogger.info.port"));
@@ -65,17 +65,17 @@ public class HiLoggerConnector {
 		}
 	}
 	
-	public static void main(String[] args) {
-		if(args.length < 1) {
-			System.out.println("Usage: HiLoggerConnector <config file>");
-			System.exit(1);
-		}
-		String configfilePath = args[0];
-		
-		HiLoggerConnector hlc = new HiLoggerConnector(configfilePath);
-		hlc.start();
-	}
-	
+//	public static void main(String[] args) {
+//		if(args.length < 1) {
+//			System.out.println("Usage: HiLoggerConnector <config file>");
+//			System.exit(1);
+//		}
+//		String configfilePath = args[0];
+//
+//		HiLoggerConnector hlc = new HiLoggerConnector(configfilePath);
+//		hlc.start();
+//	}
+
 	public void start() {
 		logger.info("hostname: " + hostname + ", port: " + port + ", measurementInterval: " + measurementInterval);
 		startConnection();
@@ -91,9 +91,9 @@ public class HiLoggerConnector {
 		public void run() {
 			long sumNumOfData = 0L;
 			long numOfData = takeInterval / measurementInterval;
-			while(isConnecting) {
-				long executiontime = System.currentTimeMillis();
-				long before = executiontime;
+
+            while(isConnecting) {
+				long before = System.currentTimeMillis();
 				byte[] rec = command(Command.REQUIRE_DATA);	// データ要求コマンド
 				Response res = new Response(rec);
 				
@@ -106,7 +106,7 @@ public class HiLoggerConnector {
 					for(int disk = 0; disk < MAX_CH / 2; disk++) {
 						synchronized(this) {
 							int driveId = unit * MAX_UNIT + disk;
-							logger.info("{},{},{}", executiontime, driveId, power.get(unit).get(0));
+							logger.info("{},{},{}", before, driveId, power.get(unit).get(0));
 							power.get(unit).remove(0);
 						}
 					}
@@ -171,9 +171,14 @@ public class HiLoggerConnector {
 		return 0.0;
 	}
 	
-	// TODO
-	public double getTotalPower() {
-		return 0.0;
+	public synchronized double getTotalPower() {
+        double totalPower = 0.0;
+        for (ArrayList<Double> unitPowers : power) {
+            for (Double unitPower : unitPowers) {
+                totalPower += unitPower;
+            }
+        }
+		return totalPower;
 	}
 	
 	private void startConnection() {
