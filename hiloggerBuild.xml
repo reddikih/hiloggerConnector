@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="hilogger" default="compile" basedir=".">
+    <property name="srcdir" value="${basedir}/src"/>
+    <property name="testdir" value="${basedir}/test"/>
+    <property name="outdir" value="${basedir}/bin"/>
+
+    <path id="libpath">
+        <pathelement location="${basedir}/lib/junit-4.10.jar"/>
+        <pathelement location="${basedir}/lib/logback-classic-1.0.9.jar"/>
+        <pathelement location="${basedir}/lib/logback-core-1.0.9.jar"/>
+        <pathelement location="${basedir}/lib/slf4j-api-1.7.2.jar"/>
+    </path>
+
+    <path id="runtime.path">
+        <pathelement location="${outdir}"/>
+        <pathelement location="${basedir}/lib/junit-4.10.jar"/>
+        <pathelement location="${basedir}/lib/logback-classic-1.0.9.jar"/>
+        <pathelement location="${basedir}/lib/logback-core-1.0.9.jar"/>
+        <pathelement location="${basedir}/lib/slf4j-api-1.7.2.jar"/>
+    </path>
+
+
+    <target name="init">
+        <!-- Create the time stamp -->
+        <tstamp/>
+        <!-- Create the build directory structure used by compile -->
+        <mkdir dir="${outdir}"/>
+    </target>
+
+    <target name="compile" depends="init" description="compile the source">
+        <javac
+                srcdir="${srcdir}"
+                encoding="UTF-8"
+                classpathref="libpath"
+                destdir="${outdir}"
+                source="1.7"
+        />
+        <javac
+                srcdir="${testdir}"
+                destdir="${outdir}"
+                encoding="UTF-8"
+                classpathref="libpath"
+                classpath="${outdir}"
+                source="1.7"
+        />
+    </target>
+
+    <target name="clean">
+        <delete dir="${outdir}"/>
+    </target>
+
+    <target name="test" depends="compile">
+        <property name="cp" refid="runtime.path"/>
+        <echo message="${cp}"/>
+        <java classname="org.junit.runner.JUnitCore" fork="yes" failonerror="true">
+            <classpath refid="runtime.path"/>
+            <arg value="test.jp.ac.titech.cs.de.hilogger.HiLoggerConnectorTest"/>
+        </java>
+    </target>
+</project>
