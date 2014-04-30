@@ -9,5 +9,6 @@
 	<classpathentry kind="lib" path="lib/logback-classic-1.0.9.jar"/>
 	<classpathentry kind="lib" path="lib/logback-core-1.0.9-sources.jar"/>
 	<classpathentry kind="lib" path="lib/logback-core-1.0.9.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/junit-4.10"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
