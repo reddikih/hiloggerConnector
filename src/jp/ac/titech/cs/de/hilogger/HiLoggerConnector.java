@@ -65,25 +65,14 @@ public class HiLoggerConnector {
 		}
 	}
 	
-//	public static void main(String[] args) {
-//		if(args.length < 1) {
-//			System.out.println("Usage: HiLoggerConnector <config file>");
-//			System.exit(1);
-//		}
-//		String configfilePath = args[0];
-//
-//		HiLoggerConnector hlc = new HiLoggerConnector(configfilePath);
-//		hlc.start();
-//	}
-
 	public void start() {
-		logger.info("hostname: " + hostname + ", port: " + port + ", measurementInterval: " + measurementInterval);
+		System.out.println("hostname: " + hostname + ", port: " + port + ", measurementInterval: " + measurementInterval);
 		startConnection();
 		
 		startTime = System.currentTimeMillis();
 		
-		logger.info("start time: " + startTime);
-		
+		System.out.println("start time: " + startTime);
+
 		lpt.start();
 	}
 	
@@ -102,14 +91,20 @@ public class HiLoggerConnector {
 				}
 				
 				// ログ書き込み
+                boolean carry = false;
 				for(int unit = 0; unit < MAX_UNIT; unit++) {
 					for(int disk = 0; disk < MAX_CH / 2; disk++) {
 						synchronized(this) {
+                            if (carry) {
+                                disk++;
+                                carry = false;
+                            }
 							int driveId = unit * MAX_UNIT + disk;
 							logger.info("{},{},{}", before, driveId, power.get(unit).get(0));
 							power.get(unit).remove(0);
 						}
 					}
+                    carry = true;
 				}
 				
 				sumNumOfData += numOfData;

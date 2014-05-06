@@ -3,22 +3,18 @@
     <property name="srcdir" value="${basedir}/src"/>
     <property name="testdir" value="${basedir}/test"/>
     <property name="outdir" value="${basedir}/bin"/>
+    <property name="libdir" value="${basedir}/lib"/>
 
     <path id="libpath">
-        <pathelement location="${basedir}/lib/junit-4.10.jar"/>
-        <pathelement location="${basedir}/lib/logback-classic-1.0.9.jar"/>
-        <pathelement location="${basedir}/lib/logback-core-1.0.9.jar"/>
-        <pathelement location="${basedir}/lib/slf4j-api-1.7.2.jar"/>
+        <fileset dir="lib">
+            <include name="**/*.jar"/>
+        </fileset>
     </path>
 
     <path id="runtime.path">
         <pathelement location="${outdir}"/>
-        <pathelement location="${basedir}/lib/junit-4.10.jar"/>
-        <pathelement location="${basedir}/lib/logback-classic-1.0.9.jar"/>
-        <pathelement location="${basedir}/lib/logback-core-1.0.9.jar"/>
-        <pathelement location="${basedir}/lib/slf4j-api-1.7.2.jar"/>
+        <path refid="libpath"/>
     </path>
-
 
     <target name="init">
         <!-- Create the time stamp -->
@@ -43,10 +39,23 @@
                 classpath="${outdir}"
                 source="1.7"
         />
+        <copy todir="${outdir}">
+            <fileset dir="${srcdir}">
+                <include name="logback.xml"/>
+            </fileset>
+        </copy>
     </target>
 
     <target name="clean">
         <delete dir="${outdir}"/>
+    </target>
+
+    <target name="jar">
+        <jar destfile="hiloggerConnector.jar">
+            <fileset dir="${outdir}"/>
+            <fileset dir="${srcdir}"/>
+            <fileset dir="${libdir}"/>
+        </jar>
     </target>
 
     <target name="test" depends="compile">
